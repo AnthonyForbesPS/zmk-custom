@@ -146,8 +146,18 @@ static struct led_rgb hsb_to_rgb(struct zmk_led_hsb hsb) {
 }
 
 static void zmk_rgb_underglow_effect_solid(void) {
+    // TEMPORARY DEBUG: walk a single lit pixel across the strip,
+    // ~1 second per pixel, so we can map pixel index -> physical key.
     for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
-        pixels[i] = hsb_to_rgb(hsb_scale_min_max(state.color));
+        pixels[i] = (struct led_rgb){r : 0, g : 0, b : 0};
+    }
+
+    int current_pixel = (state.animation_step / 40) % STRIP_NUM_PIXELS;
+    pixels[current_pixel] = hsb_to_rgb(hsb_scale_min_max(state.color));
+
+    state.animation_step += 1;
+    if (state.animation_step >= 40 * STRIP_NUM_PIXELS) {
+        state.animation_step = 0;
     }
 }
 
