@@ -30,6 +30,7 @@
 #include <zmk/event_manager.h>
 #include <zmk/events/activity_state_changed.h>
 #include <zmk/events/usb_conn_state_changed.h>
+#include <zmk/events/position_state_changed.h>
 #include <zmk/workqueue.h>
 
 #if IS_ENABLED(CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING)
@@ -105,6 +106,10 @@ static const uint8_t position_to_pixel[80] = {
     POS_NONE, POS_NONE,  3,  4,  5, 15, 21, 27, 33, 39,
 };
 #endif
+
+#define KEYPRESS_GLOW_TICKS 12  // ~300ms at the 25ms tick rate
+static uint8_t keypress_glow[STRIP_NUM_PIXELS];
+static const struct led_rgb keypress_glow_color = {r : 80, g : 80, b : 255};
 
 static struct rgb_underglow_state state;
 
@@ -233,6 +238,12 @@ static int zmk_led_generate_status(void);
 
 static void zmk_led_write_pixels(void) {
     static struct led_rgb led_buffer[STRIP_NUM_PIXELS];
+       for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
+        if (keypress_glow[i] > 0) {
+            pixels[i] = keypress_glow_color;
+            keypress_glow[i]--;
+        }
+    }
     int bat0;
     int blend = 0;
     int reset_ext_power = 0;
@@ -714,6 +725,53 @@ int zmk_rgb_underglow_status(void) {
 
     return 0;
 }
+
+static void keypress_glow_tick(struct k_work *work) {
+    zmk_led_write_pixels();
+
+    bool still_active = false;
+    for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
+        if (keypress_glow[i] > 0) {
+            still_active = true;
+            break;
+        }
+    }
+    if (!still_active) {
+        k_timer_stop(&keypress_glow_timer);
+    }
+}
+
+K_WORK_DEFINE(keypress_glow_work, keypress_glow_tick);
+
+static void keypress_glow_timer_handler(struct k_timer *timer) {
+    k_work_submit_to_queue(zmk_workqueue_lowprio_work_q(), &keypress_glow_work);
+}
+
+K_TIMER_DEFINE(keypress_glow_timer, keypress_glow_timer_handler, NULL);
+
+static int keypress_glow_listener(const zmk_event_t *eh) {
+    const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
+    if (pos_ev == NULL || !pos_ev->state) {
+        return ZMK_EV_EVENT_BUBBLE; // ignore releases
+    }
+
+    if (pos_ev->position >= 80) {
+        return ZMK_EV_EVENT_BUBBLE;
+    }
+
+    uint8_t pixel = position_to_pixel[pos_ev->position];
+    if (pixel == POS_NONE) {
+        return ZMK_EV_EVENT_BUBBLE; // this half doesn't own that key
+    }
+
+    keypress_glow[pixel] = KEYPRESS_GLOW_TICKS;
+    k_timer_start(&keypress_glow_timer, K_NO_WAIT, K_MSEC(25));
+
+    return ZMK_EV_EVENT_BUBBLE;
+}
+
+ZMK_LISTENER(keypress_glow, keypress_glow_listener);
+ZMK_SUBSCRIPTION(keypress_glow, zmk_position_state_changed);
 
 int zmk_rgb_underglow_set_hsb(struct zmk_led_hsb color) {
     if (color.h > HUE_MAX || color.s > SAT_MAX || color.b > BRT_MAX) {
