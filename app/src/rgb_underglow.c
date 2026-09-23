@@ -77,6 +77,35 @@ static const struct device *led_strip;
 static struct led_rgb pixels[STRIP_NUM_PIXELS];
 static struct led_rgb status_pixels[STRIP_NUM_PIXELS];
 
+#define POS_NONE 0xFF
+
+// ZMK key position (0-79) -> local LED pixel index (0-39), derived from the
+// matrix transform + MoErgo's LED-index comments in glove80_lh.dts.
+// A given half only ever sees position_state_changed events for its own keys.
+#if IS_ENABLED(CONFIG_BOARD_GLOVE80_LH)
+static const uint8_t position_to_pixel[ZMK_KEYMAP_LEN] = {
+    34, 28, 22, 16, 10, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+    35, 29, 23, 17, 11,  6, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+    POS_NONE, POS_NONE, 36, 30, 24, 18, 12,  7, POS_NONE, POS_NONE,
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, 37, 31, 25, 19, 13,  8,
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, 38, 32, 26, 20,
+    14,  9,  0,  1,  2, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, 39, 33, 27, 21, 15,  3,
+     4,  5, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+};
+#elif IS_ENABLED(CONFIG_BOARD_GLOVE80_RH)
+static const uint8_t position_to_pixel[ZMK_KEYMAP_LEN] = {
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, 10, 16, 22, 28, 34,
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,  6, 11, 17, 23,
+    29, 35, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,  7, 12,
+    18, 24, 30, 36, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+     8, 13, 19, 25, 31, 37, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+    POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,  0,  1,  2,  9, 14,
+    20, 26, 32, 38, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
+    POS_NONE, POS_NONE,  3,  4,  5, 15, 21, 27, 33, 39,
+};
+#endif
+
 static struct rgb_underglow_state state;
 
 #if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW_EXT_POWER)
