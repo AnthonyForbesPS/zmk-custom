@@ -83,7 +83,7 @@ static struct led_rgb status_pixels[STRIP_NUM_PIXELS];
 // matrix transform + MoErgo's LED-index comments in glove80_lh.dts.
 // A given half only ever sees position_state_changed events for its own keys.
 #if IS_ENABLED(CONFIG_BOARD_GLOVE80_LH)
-static const uint8_t position_to_pixel[ZMK_KEYMAP_LEN] = {
+static const uint8_t position_to_pixel[80] = {
     34, 28, 22, 16, 10, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
     35, 29, 23, 17, 11,  6, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
     POS_NONE, POS_NONE, 36, 30, 24, 18, 12,  7, POS_NONE, POS_NONE,
@@ -94,7 +94,7 @@ static const uint8_t position_to_pixel[ZMK_KEYMAP_LEN] = {
      4,  5, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,
 };
 #elif IS_ENABLED(CONFIG_BOARD_GLOVE80_RH)
-static const uint8_t position_to_pixel[ZMK_KEYMAP_LEN] = {
+static const uint8_t position_to_pixel[80] = {
     POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, 10, 16, 22, 28, 34,
     POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,  6, 11, 17, 23,
     29, 35, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE, POS_NONE,  7, 12,
