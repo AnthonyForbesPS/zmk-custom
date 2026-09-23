@@ -726,6 +726,9 @@ int zmk_rgb_underglow_status(void) {
     return 0;
 }
 
+static void keypress_glow_timer_handler(struct k_timer *timer);
+K_TIMER_DEFINE(keypress_glow_timer, keypress_glow_timer_handler, NULL);
+
 static void keypress_glow_tick(struct k_work *work) {
     zmk_led_write_pixels();
 
@@ -746,8 +749,6 @@ K_WORK_DEFINE(keypress_glow_work, keypress_glow_tick);
 static void keypress_glow_timer_handler(struct k_timer *timer) {
     k_work_submit_to_queue(zmk_workqueue_lowprio_work_q(), &keypress_glow_work);
 }
-
-K_TIMER_DEFINE(keypress_glow_timer, keypress_glow_timer_handler, NULL);
 
 static int keypress_glow_listener(const zmk_event_t *eh) {
     const struct zmk_position_state_changed *pos_ev = as_zmk_position_state_changed(eh);
