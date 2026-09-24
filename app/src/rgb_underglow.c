@@ -60,6 +60,7 @@ enum rgb_underglow_effect {
     UNDERGLOW_EFFECT_BREATHE,
     UNDERGLOW_EFFECT_SPECTRUM,
     UNDERGLOW_EFFECT_SWIRL,
+     UNDERGLOW_EFFECT_KEYPRESS,
     UNDERGLOW_EFFECT_NUMBER // Used to track number of underglow effects
 };
 
@@ -179,6 +180,12 @@ static struct led_rgb hsb_to_rgb(struct zmk_led_hsb hsb) {
     return rgb;
 }
 
+static void zmk_rgb_underglow_effect_keypress(void) {
+    for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
+        pixels[i] = (struct led_rgb){r : 0, g : 0, b : 0};
+    }
+}
+
 static void zmk_rgb_underglow_effect_solid(void) {
     for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
         pixels[i] = hsb_to_rgb(hsb_scale_min_max(state.color));
@@ -228,10 +235,12 @@ static int zmk_led_generate_status(void);
 
 static void zmk_led_write_pixels(void) {
     static struct led_rgb led_buffer[STRIP_NUM_PIXELS];
-       for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
-        if (keypress_glow[i] > 0) {
-            pixels[i] = keypress_glow_color;
-            keypress_glow[i]--;
+    if (state.current_effect == UNDERGLOW_EFFECT_KEYPRESS) {
+        for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
+            if (keypress_glow[i] > 0) {
+                pixels[i] = keypress_glow_color;
+                keypress_glow[i]--;
+            }
         }
     }
     int bat0;
@@ -472,6 +481,9 @@ static void zmk_rgb_underglow_tick(struct k_work *work) {
         break;
     case UNDERGLOW_EFFECT_SWIRL:
         zmk_rgb_underglow_effect_swirl();
+        break;
+    case UNDERGLOW_EFFECT_KEYPRESS:
+        zmk_rgb_underglow_effect_keypress();
         break;
     }
 
@@ -748,6 +760,10 @@ static int keypress_glow_listener(const zmk_event_t *eh) {
 
     if (pos_ev->position >= 80) {
         return ZMK_EV_EVENT_BUBBLE;
+    }
+
+    if (state.current_effect != UNDERGLOW_EFFECT_KEYPRESS) {
+        return ZMK_EV_EVENT_BUBBLE; // only react while this effect is selected
     }
 
     uint8_t pixel = position_to_pixel[pos_ev->position];
